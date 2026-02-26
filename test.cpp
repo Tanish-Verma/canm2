@@ -1,0 +1,12 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int main(){
+
+    for (size_t i = 0; i < 100; i++)
+    {
+        cout<<i+1<<endl;
+    }
+    
+    return 0;
+}
