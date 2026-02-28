@@ -15,9 +15,13 @@ fi
 
 echo "Compilation successful!"
 echo ""
-
+# Clean the error.dat file in output folder
+if [ -f output/error.dat ]; then
+    rm output/error.dat
+fi
+echo ""
 # Define grid sizes to test
-grid_sizes=(5 9 17 33 65 129 257)
+grid_sizes=(5 9 17 33 65 129 257 513)
 
 # Domain boundaries
 XST=0.0

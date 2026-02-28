@@ -18,57 +18,62 @@ def u(x,y,a,b,N,T0):
 
 def Plot_contour(X,Y,u_res):
     plt.figure(figsize=(10, 8))
-    plt.contourf(X, Y, u_res, levels=50, cmap='inferno')
+    plt.contourf(X, Y, u_res, levels=50, cmap='viridis')
     cbar = plt.colorbar(label='Temperature (K)')
     cbar.set_label('Temperature (K)', fontsize=14)
     plt.title('Temperature Distribution in the Plate', fontsize=16, fontweight='bold')
     plt.xlabel('x (m)', fontsize=14)
     plt.ylabel('y (m)', fontsize=14)
     plt.tick_params(labelsize=12)
-    plt.savefig("plots/contour_analytical.png", dpi=300, bbox_inches='tight')
+    analytical_plot = "plots/contour_analytical.png"
+    plt.savefig(analytical_plot, dpi=300, bbox_inches='tight')
+    print(f"Analytical solution plot saved as '{analytical_plot}'")
     plt.close()
 
 def plot_yprofile(x_val,y,a,b,N,T0):
     plt.figure(figsize=(12, 8))
     for x_i in x_val:
         u_xi = u(x_i,y,a,b,N,T0)
-        plt.plot(y, u_xi, label=f'x={x_i:.1f} m', linewidth=2.5)
+        plt.plot(y, u_xi, label=f'x={x_i} m', linewidth=2.5)
     plt.title('Temperature Profile Along y-axis for Different x Values', fontsize=16, fontweight='bold')
     plt.xlabel('y (m)', fontsize=14)
     plt.grid(alpha=0.3, linewidth=1)
     plt.ylabel('Temperature (K)', fontsize=14)
     plt.legend(fontsize=12, loc='best')
     plt.tick_params(labelsize=12)
-    plt.savefig("plots/y_profile.png", dpi=300, bbox_inches='tight')
+    y_profile_plot = "plots/y_profile.png"
+    plt.savefig(y_profile_plot, dpi=300, bbox_inches='tight')
+    print(f"Y-profile plot saved as '{y_profile_plot}'")
     plt.close()
 
 def plot_xprofile(y_val,x,a,b,N,T0):
     plt.figure(figsize=(12, 8))
     for y_i in y_val:
         u_yi = u(x,y_i,a,b,N,T0)
-        plt.plot(x, u_yi, label=f'y={y_i:.1f} m', linewidth=2.5)
+        plt.plot(x, u_yi, label=f'y={y_i} m', linewidth=2.5)
     plt.title('Temperature Profile Along x-axis for Different y Values', fontsize=16, fontweight='bold')
     plt.xlabel('x (m)', fontsize=14)
     plt.grid(alpha=0.3, linewidth=1)
     plt.ylabel('Temperature (K)', fontsize=14)
     plt.legend(fontsize=12, loc='best')
     plt.tick_params(labelsize=12)
-    plt.savefig("plots/x_profile.png", dpi=300, bbox_inches='tight')
+    x_profile_plot = "plots/x_profile.png"
+    plt.savefig(x_profile_plot, dpi=300, bbox_inches='tight')
+    print(f"X-profile plot saved as '{x_profile_plot}'")
     plt.close()
 
 N = 50
 a = 1
 b = 0.5
 T0 = 300
-x = np.linspace(0, a, 5)
-y = np.linspace(0, b, 3)
+nx = 513
+ny = 257
+x = np.linspace(0, a, nx)
+y = np.linspace(0, b, ny)
 X, Y = np.meshgrid(x, y)
 u_res = u(X, Y, a, b, N, T0)
 
-#debugging print statements
-# for i in range(len(x)):
-#     for j in range(len(y)):
-#         print(f"x: {x[i]:.2f} m, y: {y[j]:.2f} m, u: {u_res[j,i]:.2f} K")
+
 
 Plot_contour(X,Y,u_res)
 x_val = a*np.array([0.1,0.3,0.5,0.7,0.9],dtype=float)
