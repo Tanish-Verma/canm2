@@ -355,6 +355,14 @@ void output_soln(int nx, int ny, int iter, double *x, double *y, double **T, dou
   printf(" > Done writing solution for stamp = %d to file %s\n\n", iter, fname);
 }
 
+double get_sor(int nx,int ny){
+  double omega;
+   //assuming uniform grid for calculating optimal SOR factor
+  double r = (cos(PI/nx) + cos(PI/ny));
+  omega = 2.0 / (1.0 + sqrt(1.0 - r*r/4.0));
+  return omega;
+}
+
 int main()
 {
 
@@ -482,7 +490,7 @@ int main()
   printf("\n > Solving for T ------------- \n\n");
   max_iter = 100000;
   tol = 1.0e-10;
-  relax_T = 1.6;
+  relax_T = get_sor(nx,ny); // approximating optimal relaxation factor for SOR
   
   clock_t start_time = clock();
   solve_gssor(nx, ny, aP, aE, aW, aN, aS, b, T, wrk1, wrk2, max_iter, tol, relax_T);
