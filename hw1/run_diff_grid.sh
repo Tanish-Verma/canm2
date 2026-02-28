@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Script to run q4 for different grid sizes
-# Input format: nx ny
-#               xst xen
-#               yst yen
-
-# Compile the code first
 echo "Compiling q4.c..."
 gcc -o q4 q4.c -lm
 if [ $? -ne 0 ]; then
@@ -15,6 +9,7 @@ fi
 
 echo "Compilation successful!"
 echo ""
+
 # Clean the error.dat file in output folder
 if [ -f output/error.dat ]; then
     rm output/error.dat
