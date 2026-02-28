@@ -86,7 +86,6 @@ def plot_error(filename):
     plt.tight_layout()
     save_figure(fig, 'error_norm_log_log.png', plots_dir, dpi=150)
 
-
 def plot_line_profiles_with_analytical_solution(grid_sizes, output_dir='output', iter_stamp=0, x_target=0.9, y_target=0.4):
     plots_dir = ensure_plots_dir()
     datasets = []
@@ -139,7 +138,7 @@ def plot_line_profiles_with_analytical_solution(grid_sizes, output_dir='output',
     ax_y.grid(True, alpha=0.3)
     ax_y.legend()
     fig_y.tight_layout()
-    save_figure(fig_y, f'line_T_vs_y_x{x_tag}.png', plots_dir)
+    save_figure(fig_y, f'y_profile_for_x{x_tag}.png', plots_dir)
 
     # -------- Plot 2: T vs x at y = y_target --------
     fig_x, ax_x = plt.subplots(figsize=(9, 6))
@@ -159,7 +158,7 @@ def plot_line_profiles_with_analytical_solution(grid_sizes, output_dir='output',
     ax_x.grid(True, alpha=0.3)
     ax_x.legend()
     fig_x.tight_layout()
-    save_figure(fig_x, f'line_T_vs_x_y{y_tag}.png', plots_dir)
+    save_figure(fig_x, f'x_profile_for_y{y_tag}.png', plots_dir)
 
 
 if __name__ == "__main__":
