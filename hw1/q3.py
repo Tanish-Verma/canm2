@@ -10,7 +10,7 @@ def sinh_term(x,m,a,b):
 def u(x,y,a,b,N,T0):
     u_sum = 0
     for m in range(N):
-        u_sum += (1/(2*m+1)**2)*cos_term(y,m,b)*sinh_term(x,m,a,b)
+        u_sum += (1/((2*m+1)*np.pi)**2)*cos_term(y,m,b)*sinh_term(x,m,a,b)
 
     u_result = T0*(1 - 0.8 * u_sum)
     
@@ -25,7 +25,7 @@ def Plot_contour(X,Y,u_res):
     plt.xlabel('x (m)', fontsize=14)
     plt.ylabel('y (m)', fontsize=14)
     plt.tick_params(labelsize=12)
-    plt.savefig("plot.png", dpi=300, bbox_inches='tight')
+    plt.savefig("plots/contour_analytical.png", dpi=300, bbox_inches='tight')
     plt.close()
 
 def plot_yprofile(x_val,y,a,b,N,T0):
@@ -39,7 +39,7 @@ def plot_yprofile(x_val,y,a,b,N,T0):
     plt.ylabel('Temperature (K)', fontsize=14)
     plt.legend(fontsize=12, loc='best')
     plt.tick_params(labelsize=12)
-    plt.savefig("y_profile.png", dpi=300, bbox_inches='tight')
+    plt.savefig("plots/y_profile.png", dpi=300, bbox_inches='tight')
     plt.close()
 
 def plot_xprofile(y_val,x,a,b,N,T0):
@@ -53,17 +53,22 @@ def plot_xprofile(y_val,x,a,b,N,T0):
     plt.ylabel('Temperature (K)', fontsize=14)
     plt.legend(fontsize=12, loc='best')
     plt.tick_params(labelsize=12)
-    plt.savefig("x_profile.png", dpi=300, bbox_inches='tight')
+    plt.savefig("plots/x_profile.png", dpi=300, bbox_inches='tight')
     plt.close()
 
 N = 50
 a = 1
 b = 0.5
 T0 = 300
-x = np.linspace(0, a, 5001)
-y = np.linspace(0, b, 5001)
+x = np.linspace(0, a, 5)
+y = np.linspace(0, b, 3)
 X, Y = np.meshgrid(x, y)
-u_res = u(X,Y,a,b,N,T0)
+u_res = u(X, Y, a, b, N, T0)
+
+#debugging print statements
+# for i in range(len(x)):
+#     for j in range(len(y)):
+#         print(f"x: {x[i]:.2f} m, y: {y[j]:.2f} m, u: {u_res[j,i]:.2f} K")
 
 Plot_contour(X,Y,u_res)
 x_val = a*np.array([0.1,0.3,0.5,0.7,0.9],dtype=float)
