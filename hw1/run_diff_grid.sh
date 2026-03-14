@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Compiling q4.c..."
-gcc -o q4 q4.c -lm
+gcc -o a.out q4.c -lm
 if [ $? -ne 0 ]; then
     echo "Compilation failed!"
     exit 1
@@ -43,7 +43,7 @@ EOF
     echo "Created input.in with nx=$nx, ny=$ny"
     
     # Run the program
-    ./q4
+    ./a.out
     
     echo ""
 done

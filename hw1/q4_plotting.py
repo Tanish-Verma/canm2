@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import os
 
 def ensure_plots_dir():
@@ -9,7 +10,7 @@ def ensure_plots_dir():
         print(f"Created '{plots_dir}' directory")
     return plots_dir
 
-def save_figure(fig, filename, plots_dir='plots', dpi=200):
+def save_figure(fig, filename, plots_dir='plots', dpi=300):
     """Helper function to save figures with consistent settings."""
     filepath = os.path.join(plots_dir, filename)
     fig.savefig(filepath, dpi=dpi, bbox_inches='tight')
@@ -49,19 +50,19 @@ def plot_contour(filename):
     x, y, T, Tex = load_data(filename)
     X, Y, T_2d, Tex_2d = reshape_data(x, y, T, Tex, nx, ny)
     
-    fig1, ax1 = plt.subplots(figsize=(10, 8))
+    fig1, ax = plt.subplots(figsize=(10, 8))
     
-    cs1 = ax1.contourf(X, Y, T_2d, levels=20, cmap='viridis')
-    ax1.contour(X, Y, T_2d, levels=10, colors='black', linewidths=0.5, alpha=0.3)
-    ax1.set_xlabel('x (m)')
-    ax1.set_ylabel('y (m)')
-    ax1.set_title('Numerical Solution (T)')
-    fig1.colorbar(cs1, ax=ax1)
-    
+    cs = ax.contourf(X, Y, T_2d, levels=50, cmap='viridis')
+    ax.set_xlabel('x (m)', fontsize=14)
+    ax.set_ylabel('y (m)', fontsize=14)
+    ax.set_title('Numerical Solution (T)', fontsize=16, fontweight='bold')
+    cbar = fig1.colorbar(cs, ax=ax)
+    cbar.set_label('Temperature (K)', fontsize=14)
+    ax.tick_params(labelsize=12)
     plt.tight_layout()
-    save_figure(fig1, 'contour_numerical.png', plots_dir, dpi=150)
+    save_figure(fig1, 'contour_numerical.png', plots_dir, dpi=300)
     
-def plot_error(filename):
+def plot_error(filename,a):
     
     if not os.path.exists(filename):
         print(f"Error: File '{filename}' not found!")
@@ -75,16 +76,31 @@ def plot_error(filename):
 
     nx = data[:, 0]
     l2err = data[:, 2]
-
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.loglog(nx, l2err, marker='o', linewidth=1.5)
-    ax.set_xlabel('Grid points (nx)')
-    ax.set_ylabel('L2 Error Norm')
-    ax.set_title('Error Norm vs Grid Points (log Scale)')
-    ax.grid(True, which='both', linestyle='--', alpha=0.4)
     
+    # Calculate grid spacing from nx (assuming domain spans [0, 1])
+    grid_spacing = a / (nx - 1)
+    # slope, _ = np.polyfit(np.log(grid_spacing), np.log(l2err), 1)
+    slope, _ = np.polyfit(np.log(grid_spacing[2:-2]), np.log(l2err[2:-2]), 1)
+    print(f"Approximate slope (order of convergence): {slope:.3f}")
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.loglog(grid_spacing, l2err, marker='o', linewidth=2.5, markersize=8)
+    ax.set_xlabel('Grid spacing (dx)', fontsize=14)
+    ax.set_ylabel('L2 Error Norm', fontsize=14)
+    ax.set_title('Error Norm vs Grid Spacing (log Scale)', fontsize=16, fontweight='bold')
+    ax.grid(True, which='both', linestyle='--', alpha=0.3, linewidth=1)
+    ax.tick_params(labelsize=12)
+    
+    def power_of_2_formatter(x,pos):
+        log_val = np.log2(x)
+        power = int(np.round(log_val))
+        return f'$2^{{{power}}}$'
+    
+    ax.set_xticks(grid_spacing)
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(power_of_2_formatter))
+
     plt.tight_layout()
-    save_figure(fig, 'error_norm_log_log.png', plots_dir, dpi=150)
+    save_figure(fig, 'error_norm_log_log.png', plots_dir, dpi=300)
 
 def plot_line_profiles_with_analytical_solution(grid_sizes, output_dir='output', iter_stamp=0, x_target=0.9, y_target=0.4):
     plots_dir = ensure_plots_dir()
@@ -125,20 +141,21 @@ def plot_line_profiles_with_analytical_solution(grid_sizes, output_dir='output',
     for d in datasets:
         if d!=ref:
             ix = int(np.argmin(np.abs(d['x1d'] - x_target)))
-            ax_y.plot(d['y1d'], d['T2d'][ix, :], linewidth=2.5,
+            ax_y.plot(d['y1d'], d['T2d'][ix, :], linewidth=3.0,
                     label=f"Grid size {d['nx']}x{d['ny']}")
 
     ix_ref = int(np.argmin(np.abs(ref['x1d'] - x_target)))
-    ax_y.plot(ref['y1d'], ref['Tex2d'][ix_ref, :], '--', linewidth=3.0, label='Exact (Tex)',color = "#000000")
-    ax_y.set_xlabel('y (m)')
-    ax_y.set_ylabel('Temperature (k)')
+    ax_y.plot(ref['y1d'], ref['Tex2d'][ix_ref, :], '--', linewidth=3.5, label='Exact (Tex)',color = "#000000")
+    ax_y.set_xlabel('y (m)', fontsize=14)
+    ax_y.set_ylabel('Temperature (K)', fontsize=14)
 
     x_tag = str(x_target).replace('.', 'p')
-    ax_y.set_title(f'Temperature vs y at x = {x_target:.1f}')
-    ax_y.grid(True, alpha=0.3)
-    ax_y.legend()
+    ax_y.set_title(f'Temperature Profile Along y-axis for x = {x_target}', fontsize=16, fontweight='bold')
+    ax_y.grid(True, alpha=0.3, linewidth=1)
+    ax_y.legend(fontsize=13)
+    ax_y.tick_params(labelsize=12)
     fig_y.tight_layout()
-    save_figure(fig_y, f'y_profile_for_x{x_tag}.png', plots_dir)
+    save_figure(fig_y, f'y_profile_for_x{x_tag}.png', plots_dir,dpi=300)
 
     # -------- Plot 2: T vs x at y = y_target --------
     fig_x, ax_x = plt.subplots(figsize=(9, 6))
@@ -146,28 +163,31 @@ def plot_line_profiles_with_analytical_solution(grid_sizes, output_dir='output',
     for d in datasets:
         if d != ref:
             jy = int(np.argmin(np.abs(d['y1d'] - y_target)))
-            ax_x.plot(d['x1d'], d['T2d'][:, jy], linewidth=2.5,
+            ax_x.plot(d['x1d'], d['T2d'][:, jy], linewidth=3.0,
                     label=f"Grid size {d['nx']}x{d['ny']}")
 
     jy_ref = int(np.argmin(np.abs(ref['y1d'] - y_target)))
-    ax_x.plot(ref['x1d'], ref['Tex2d'][:, jy_ref], '--', linewidth=3.0, label='Exact (Tex)',color = "#000000")
-    ax_x.set_xlabel('x (m)')
-    ax_x.set_ylabel('Temperature (k)')
+    ax_x.plot(ref['x1d'], ref['Tex2d'][:, jy_ref], '--', linewidth=3.5, label='Exact (Tex)',color = "#000000")
+    ax_x.set_xlabel('x (m)', fontsize=14)
+    ax_x.set_ylabel('Temperature (K)', fontsize=14)
     y_tag = str(y_target).replace('.', 'p')
-    ax_x.set_title(f'Temperature vs x at y = {y_target:.1f}')
-    ax_x.grid(True, alpha=0.3)
-    ax_x.legend()
+    ax_x.set_title(f'Temperature Profile Along x-axis for y = {y_target}', fontsize=16, fontweight='bold')
+    ax_x.grid(True, alpha=0.3, linewidth=1)
+    ax_x.legend(fontsize=13)
+    ax_x.tick_params(labelsize=12)
     fig_x.tight_layout()
-    save_figure(fig_x, f'x_profile_for_y{y_tag}.png', plots_dir)
+    save_figure(fig_x, f'x_profile_for_y{y_tag}.png', plots_dir,dpi=300)
 
 
 if __name__ == "__main__":
+    a = 1
+    b = 0.5
     grid_sizes = [5, 9, 17, 65, 257, 513]
-    x_target = 0.9
-    y_target = 0.4
+    x_target = 0.9*a
+    y_target = 0.8 * b
     dat_file = "output/T_xy_513_257_0000.dat"
     error_file = "output/error.dat"
     plot_contour(dat_file)
-    plot_error(error_file)
+    plot_error(error_file, a)
 
     plot_line_profiles_with_analytical_solution(grid_sizes, x_target=x_target, y_target=y_target)

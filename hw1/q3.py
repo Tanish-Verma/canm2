@@ -1,5 +1,20 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
+import os
+
+def ensure_plots_dir():
+    plots_dir = 'plots'
+    if not os.path.exists(plots_dir):
+        os.makedirs(plots_dir)
+        print(f"Created '{plots_dir}' directory")
+    return plots_dir
+
+def save_figure(fig, filename, plots_dir='plots', dpi=300):
+    """Helper function to save figures with consistent settings."""
+    filepath = os.path.join(plots_dir, filename)
+    fig.savefig(filepath, dpi=dpi, bbox_inches='tight')
+    plt.close(fig)
+    print(f"Plot saved as '{filepath}'")
 
 def cos_term(y,m,b):
     return np.cos((2*m+1)*np.pi*y/b)
@@ -17,50 +32,47 @@ def u(x,y,a,b,N,T0):
     return u_result
 
 def Plot_contour(X,Y,u_res):
-    plt.figure(figsize=(10, 8))
-    plt.contourf(X, Y, u_res, levels=50, cmap='viridis')
-    cbar = plt.colorbar(label='Temperature (K)')
+    plots_dir = ensure_plots_dir()
+    fig, ax = plt.subplots(figsize=(10, 8))
+    cs = ax.contourf(X, Y, u_res, levels=50, cmap='viridis')
+    cbar = fig.colorbar(cs, ax=ax)
     cbar.set_label('Temperature (K)', fontsize=14)
-    plt.title('Temperature Distribution in the Plate', fontsize=16, fontweight='bold')
-    plt.xlabel('x (m)', fontsize=14)
-    plt.ylabel('y (m)', fontsize=14)
-    plt.tick_params(labelsize=12)
-    analytical_plot = "plots/contour_analytical.png"
-    plt.savefig(analytical_plot, dpi=300, bbox_inches='tight')
-    print(f"Analytical solution plot saved as '{analytical_plot}'")
-    plt.close()
+    ax.set_title('Temperature Distribution in the Plate', fontsize=16, fontweight='bold')
+    ax.set_xlabel('x (m)', fontsize=14)
+    ax.set_ylabel('y (m)', fontsize=14)
+    ax.tick_params(labelsize=12)
+    fig.tight_layout()
+    save_figure(fig, 'contour_analytical.png', plots_dir, dpi=300)
 
 def plot_yprofile(x_val,y,a,b,N,T0):
-    plt.figure(figsize=(12, 8))
+    plots_dir = ensure_plots_dir()
+    fig, ax = plt.subplots(figsize=(9, 6))
     for x_i in x_val:
         u_xi = u(x_i,y,a,b,N,T0)
-        plt.plot(y, u_xi, label=f'x={x_i} m', linewidth=2.5)
-    plt.title('Temperature Profile Along y-axis for Different x Values', fontsize=16, fontweight='bold')
-    plt.xlabel('y (m)', fontsize=14)
-    plt.grid(alpha=0.3, linewidth=1)
-    plt.ylabel('Temperature (K)', fontsize=14)
-    plt.legend(fontsize=12, loc='best')
-    plt.tick_params(labelsize=12)
-    y_profile_plot = "plots/y_profile.png"
-    plt.savefig(y_profile_plot, dpi=300, bbox_inches='tight')
-    print(f"Y-profile plot saved as '{y_profile_plot}'")
-    plt.close()
+        ax.plot(y, u_xi, label=f'x={x_i} m', linewidth=3.0)
+    ax.set_title('Temperature Profile Along y-axis for Different x Values', fontsize=16, fontweight='bold')
+    ax.set_xlabel('y (m)', fontsize=14)
+    ax.set_ylabel('Temperature (K)', fontsize=14)
+    ax.grid(True, alpha=0.3, linewidth=1)
+    ax.legend(fontsize=13, loc='best')
+    ax.tick_params(labelsize=12)
+    fig.tight_layout()
+    save_figure(fig, 'y_profile.png', plots_dir, dpi=300)
 
 def plot_xprofile(y_val,x,a,b,N,T0):
-    plt.figure(figsize=(12, 8))
+    plots_dir = ensure_plots_dir()
+    fig, ax = plt.subplots(figsize=(9, 6))
     for y_i in y_val:
         u_yi = u(x,y_i,a,b,N,T0)
-        plt.plot(x, u_yi, label=f'y={y_i} m', linewidth=2.5)
-    plt.title('Temperature Profile Along x-axis for Different y Values', fontsize=16, fontweight='bold')
-    plt.xlabel('x (m)', fontsize=14)
-    plt.grid(alpha=0.3, linewidth=1)
-    plt.ylabel('Temperature (K)', fontsize=14)
-    plt.legend(fontsize=12, loc='best')
-    plt.tick_params(labelsize=12)
-    x_profile_plot = "plots/x_profile.png"
-    plt.savefig(x_profile_plot, dpi=300, bbox_inches='tight')
-    print(f"X-profile plot saved as '{x_profile_plot}'")
-    plt.close()
+        ax.plot(x, u_yi, label=f'y={y_i} m', linewidth=3.0)
+    ax.set_title('Temperature Profile Along x-axis for Different y Values', fontsize=16, fontweight='bold')
+    ax.set_xlabel('x (m)', fontsize=14)
+    ax.set_ylabel('Temperature (K)', fontsize=14)
+    ax.grid(True, alpha=0.3, linewidth=1)
+    ax.legend(fontsize=13, loc='best')
+    ax.tick_params(labelsize=12)
+    fig.tight_layout()
+    save_figure(fig, 'x_profile.png', plots_dir, dpi=300)
 
 N = 50
 a = 1
@@ -77,7 +89,7 @@ u_res = u(X, Y, a, b, N, T0)
 
 Plot_contour(X,Y,u_res)
 x_val = a*np.array([0.1,0.3,0.5,0.7,0.9],dtype=float)
-y_val = b*np.array([0.1,0.5,0.9],dtype=float)
+y_val = b*np.array([0.2,0.5,0.8],dtype=float)
 
 plot_yprofile(x_val,y,a,b,N,T0)
 plot_xprofile(y_val,x,a,b,N,T0)
