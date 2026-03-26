@@ -2,10 +2,46 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#define BETA 3.0
 
 // const double PI = 4.0*atan(1.0);
 const double PI = 3.14159265358979323846;
 
+double xu_prime(double xs, double L, double beta)
+{
+    double log_term = log((beta + 1.0) / (beta - 1.0));
+    double L_beta = L * beta;
+    double L_minus_2xs = L - 2.0 * xs;
+    // Denominator base: (beta*L)^2 - (L - 2xs)^2
+    double denom_base = (L_beta * L_beta) - (L_minus_2xs * L_minus_2xs);
+
+    // dxu/dxs
+    double first_deriv = (2.0 * L * L_beta) / (denom_base * log_term);
+    return first_deriv;
+}
+
+double xu_double_prime(double xs, double L, double beta)
+{
+    double log_term = log((beta + 1.0) / (beta - 1.0));
+    double L_beta = L * beta;
+    double L_minus_2xs = L - 2.0 * xs;
+    double denom_base = (L_beta * L_beta) - (L_minus_2xs * L_minus_2xs);
+
+    // d2xu/dxs2
+    // Note: The -8.0 coefficient correctly accounts for the inner derivative 
+    // of the squared term in the denominator.
+    double second_deriv = (-8.0 * L * L_beta * L_minus_2xs) / (pow(denom_base, 2) * log_term);
+    return second_deriv;
+}
+
+double xs(double xu, double L, double beta)
+{
+
+  double Lambda = (1.0 + beta) / (beta - 1.0);
+  double R = pow(Lambda, (2.0 * (xu / L) - 1.0));
+
+  return L * ((1.0 + beta) * R - beta + 1.0) / (2.0 * (1.0 + R));
+}
 void grid(int nx, double xst, double xen, double *x, double *dx)
 {
   int i;
@@ -14,19 +50,23 @@ void grid(int nx, double xst, double xen, double *x, double *dx)
   // uniform mesh for now;
   // can use stretching factors to place x nodes later
   dxunif = (xen - xst) / (double)(nx - 1);
+  double Lx = xen - xst;
 
   // populate x[i] s
   for (i = 0; i < nx; i++)
-    x[i] = xst + ((double)i) * dxunif;
+    x[i] = xs(xst + i * dxunif, Lx, BETA); // stretch factor beta = BETA
+  // x[i] = xs(i / (nx - 1.0), Lx, BETA); // stretch factor beta = BETA
 
   // dx[i] s are spacing between adjacent xs
   for (i = 0; i < nx - 1; i++)
     dx[i] = x[i + 1] - x[i];
 
-  // //// debug -- print x
-  // printf("--x--\n");
-  // for (i = 0; i < nx; i++)
-  //   printf("%d %lf\n", i, x[i]);
+  //// debug -- print x
+  printf("--x--\n");
+  for (i = 0; i < nx; i++)
+  {
+    printf("%d %lf xu = %lf\n", i, x[i], xst + i * dxunif);
+  }
 
   // //// debug -- print dx
   // printf("--dx--\n");
@@ -55,7 +95,7 @@ void calc_diffusivity(int nx, int ny, double *x, double *y, double **T, double *
     }
 }
 
-void calc_sources(int nx, int ny, double *x, double *y, double *dx, double *dy, double **T, double **b)
+void calc_sources(int nx, int ny, double hx,double hy,double *x, double *y, double *dx, double *dy, double **T, double **b)
 {
   int i, j;
 
@@ -89,7 +129,8 @@ void set_boundary_conditions(int nx, int ny, double *x, double *y, double *dx, d
   {
     bcrght[j][0] = 0.0;                                // p(y)
     bcrght[j][1] = 1.0;                                // q(y)
-    bcrght[j][2] = 300 * (1 + 0.2 * (2 * y[j] - 0.5)); // r(y)
+    // bcrght[j][2] = 300 * (1 + 0.2 * (2 * y[j] - 0.5)); // r(y)
+    bcrght[j][2] = 300 * (1 + 0.2 * (y[j]/y[ny-1] - 0.5)); // r(y)
   }
 
   // bottom boundary -- Homogeneous Neumann
@@ -111,7 +152,7 @@ void set_boundary_conditions(int nx, int ny, double *x, double *y, double *dx, d
   }
 }
 
-void get_coeffs(int nx, int ny, double *x, double *y, double *dx, double *dy, double **aP, double **aE, double **aW, double **aN, double **aS, double **b, double **T, double **kdiff, double **bcleft, double **bcrght, double **bctop, double **bcbot)
+void get_coeffs(int nx, int ny, double hx, double hy, double *x, double *y, double *dx, double *dy, double **aP, double **aE, double **aW, double **aN, double **aS, double **b, double **T, double **kdiff, double **bcleft, double **bcrght, double **bctop, double **bcbot)
 {
 
   int i, j;
@@ -121,94 +162,143 @@ void get_coeffs(int nx, int ny, double *x, double *y, double *dx, double *dy, do
   calc_diffusivity(nx, ny, x, y, T, kdiff);
 
   // calculate sources Su, Sp at [x, y]; may be dependent on T
-  calc_sources(nx, ny, x, y, dx, dy, T, b);
+  calc_sources(nx, ny, hx,hy,x, y, dx, dy, T, b);
 
   // populate values in BC arrays
   set_boundary_conditions(nx, ny, x, y, dx, dy, T, bcleft, bcrght, bctop, bcbot);
 
   // start populating the coefficients
-  hxhy_sq = dx[0] * dx[0] / (dy[0] * dy[0]);
+  hxhy_sq = (hx * hx) / (hy * hy);
+  double Lx = x[nx - 1] - x[0];
+  double Ly = y[ny - 1] - y[0];
 
   // ------ Step 1 :: interior points ------
   for (i = 1; i < nx - 1; i++)
     for (j = 1; j < ny - 1; j++)
     {
-      aP[i][j] = 2 * (1 + hxhy_sq) * kdiff[i][j];
-      aE[i][j] = -kdiff[i][j];
-      aW[i][j] = -kdiff[i][j];
-      aN[i][j] = -hxhy_sq * kdiff[i][j];
-      aS[i][j] = -hxhy_sq * kdiff[i][j];
+      double Jx = xu_prime(x[i], Lx, BETA);
+      double Jy = xu_prime(y[j], Ly, BETA);
+      aP[i][j] = 2 * (Jx * Jx + hxhy_sq * Jy * Jy) * kdiff[i][j];
+      aE[i][j] = -kdiff[i][j] * (Jx * Jx + 0.5 * hx * xu_double_prime(x[i], Lx, BETA));
+      aW[i][j] = -kdiff[i][j] * (Jx * Jx - 0.5 * hx * xu_double_prime(x[i], Lx, BETA));
+      aN[i][j] = -kdiff[i][j] * (hxhy_sq * Jy * Jy + hxhy_sq * 0.5 * hy * xu_double_prime(y[j], Ly, BETA));
+      aS[i][j] = -kdiff[i][j] * (hxhy_sq * Jy * Jy - hxhy_sq * 0.5 * hy * xu_double_prime(y[j], Ly, BETA));
     }
 
   // ------ Step 2 :: left boundary ----------
   i = 0;
+  double Jx = xu_prime(x[i], Lx, BETA);
+  double Jxx = xu_double_prime(x[i], Lx, BETA);
+  double E_int = (Jx * Jx + hx * Jxx / 2.0);
+  double W_int = (Jx * Jx - hx * Jxx / 2.0);
+
   for (j = 0; j < ny; j++)
   {
     pj = bcleft[j][0];
     qj = bcleft[j][1];
     rj = bcleft[j][2];
+    double Jy = xu_prime(y[j], Ly, BETA);
+    double Jyy = xu_double_prime(y[j], Ly, BETA);
+    double ptilda = pj * Jx;
+    double N_int = (hxhy_sq * Jy * Jy + hxhy_sq * 0.5 * hy * Jyy);
+    double S_int = (hxhy_sq * Jy * Jy - hxhy_sq * 0.5 * hy * Jyy);
+    double P_int = Jx * Jx + hxhy_sq * Jy * Jy;
 
-    aP[i][j] = 2.0 * kdiff[i][j] * ((1.0 + hxhy_sq) * pj - dx[0] * qj);
-    aE[i][j] = -2.0 * kdiff[i][j] * pj;
+    aP[i][j] = 2.0 * kdiff[i][j] * (P_int * ptilda - hx * W_int * qj);
+    aE[i][j] = -kdiff[i][j] * (E_int + W_int) * ptilda;
     aW[i][j] = 0.0;
-    aN[i][j] = -hxhy_sq * kdiff[i][j] * pj;
-    aS[i][j] = -hxhy_sq * kdiff[i][j] * pj;
-    b[i][j] = b[i][j] * pj - 2.0 * dx[0] * rj * kdiff[i][j];
+    aN[i][j] = -N_int * kdiff[i][j] * ptilda;
+    aS[i][j] = -S_int * kdiff[i][j] * ptilda;
+    b[i][j] = b[i][j] * ptilda - 2.0 * hx * rj * kdiff[i][j] * W_int;
   }
   // ------ Step 2 :: left boundary done ---
 
   // ------ Step 3 :: right boundary ----------
-  i = nx - 1;
-  for (j = 0; j < ny; j++)
   {
-    pj = bcrght[j][0];
-    qj = bcrght[j][1];
-    rj = bcrght[j][2];
+    i = nx - 1;
+    Jx = xu_prime(x[i], Lx, BETA);
+    Jxx = xu_double_prime(x[i], Lx, BETA);
+    E_int = (Jx * Jx + hx * Jxx / 2.0);
+    W_int = (Jx * Jx - hx * Jxx / 2.0);
+    for (j = 0; j < ny; j++)
+    {
+      pj = bcrght[j][0];
+      qj = bcrght[j][1];
+      rj = bcrght[j][2];
+      double Jy = xu_prime(y[j], Ly, BETA);
+      double Jyy = xu_double_prime(y[j], Ly, BETA);
+      double ptilda = pj * Jx;
+      double N_int = (hxhy_sq * Jy * Jy + hxhy_sq * 0.5 * hy * Jyy);
+      double S_int = (hxhy_sq * Jy * Jy - hxhy_sq * 0.5 * hy * Jyy);
+      double P_int = Jx * Jx + hxhy_sq * Jy * Jy;
 
-    aP[i][j] = 2.0 * kdiff[i][j] * ((1.0 + hxhy_sq) * pj + dx[i - 1] * qj);
-    aW[i][j] = -2.0 * kdiff[i][j] * pj;
-    aE[i][j] = 0.0;
-    aN[i][j] = -hxhy_sq * kdiff[i][j] * pj;
-    aS[i][j] = -hxhy_sq * kdiff[i][j] * pj;
-    b[i][j] = b[i][j] * pj + 2.0 * dx[0] * rj * kdiff[i][j];
+      aP[i][j] = 2.0 * kdiff[i][j] * (P_int * ptilda + hx * E_int * qj);
+      aW[i][j] = -kdiff[i][j] * (E_int + W_int) * ptilda;
+      aE[i][j] = 0.0;
+      aN[i][j] = -N_int * kdiff[i][j] * ptilda;
+      aS[i][j] = -S_int * kdiff[i][j] * ptilda;
+      b[i][j] = b[i][j] * ptilda + 2.0 * hx * rj * kdiff[i][j] * E_int;
+    }
   }
   // ------ Step 3 :: right boundary done ---
 
   // ------ Step 4 :: bottom boundary ----------
   j = 0;
+  double Jy = xu_prime(y[j], Ly, BETA);
+  double Jyy = xu_double_prime(y[j], Ly, BETA);
+  double N_int = (hxhy_sq * Jy * Jy + hxhy_sq * 0.5 * hy * Jyy);
+  double S_int = (hxhy_sq * Jy * Jy - hxhy_sq * 0.5 * hy * Jyy);
+
   for (i = 1; i < nx - 1; i++)
   {
     pj = bcbot[i][0];
     qj = bcbot[i][1];
     rj = bcbot[i][2];
+    Jx = xu_prime(x[i], Lx, BETA);
+    Jxx = xu_double_prime(x[i], Lx, BETA);
+    double ptilda = pj * Jy;
+    double E_int = (Jx * Jx + hx * Jxx / 2.0);
+    double W_int = (Jx * Jx - hx * Jxx / 2.0);
+    double P_int = Jx * Jx + hxhy_sq * Jy * Jy;
 
-    aP[i][j] = 2.0 * kdiff[i][j] * ((1.0 + hxhy_sq) * pj - hxhy_sq * dy[j] * qj);
-    aW[i][j] = -kdiff[i][j] * pj;
-    aE[i][j] = -kdiff[i][j] * pj;
-    aN[i][j] = -2 * hxhy_sq * kdiff[i][j] * pj;
+    aP[i][j] = 2.0 * kdiff[i][j] * (P_int * ptilda - hy * S_int * qj);
+    aW[i][j] = -kdiff[i][j] * ptilda * W_int;
+    aE[i][j] = -kdiff[i][j] * ptilda * E_int;
+    aN[i][j] = -kdiff[i][j] * ptilda * (N_int + S_int);
     aS[i][j] = 0.0;
-    b[i][j] = (b[i][j] * pj) - 2 * hxhy_sq * dy[j] * rj * kdiff[i][j];
+    b[i][j] = (b[i][j] * ptilda) - 2 * hy * rj * kdiff[i][j] * S_int;
   }
   // ------ Step 4 :: bottom boundary done ---
 
   // ------ Step 5 :: top boundary ----------
   j = ny - 1;
+  Jy = xu_prime(y[j], Ly, BETA);
+  Jyy = xu_double_prime(y[j], Ly, BETA);
+  N_int = (hxhy_sq * Jy * Jy + hxhy_sq * 0.5 * hy * Jyy);
+  S_int = (hxhy_sq * Jy * Jy - hxhy_sq * 0.5 * hy * Jyy);
   for (i = 1; i < nx - 1; i++)
   {
     pj = bctop[i][0];
     qj = bctop[i][1];
     rj = bctop[i][2];
 
-    aP[i][j] = 2.0 * kdiff[i][j] * ((1.0 + hxhy_sq) * pj + hxhy_sq * dy[j - 1] * qj);
-    aW[i][j] = -kdiff[i][j] * pj;
-    aE[i][j] = -kdiff[i][j] * pj;
+    Jx = xu_prime(x[i], Lx, BETA);
+    Jxx = xu_double_prime(x[i], Lx, BETA);
+    double ptilda = pj * Jy;
+    double E_int = (Jx * Jx + hx * Jxx / 2.0);
+    double W_int = (Jx * Jx - hx * Jxx / 2.0);
+    double P_int = Jx * Jx + hxhy_sq * Jy * Jy;
+
+    aP[i][j] = 2.0 * kdiff[i][j] * (P_int * ptilda + hy * N_int * qj);
+    aW[i][j] = -kdiff[i][j] * ptilda * W_int;
+    aE[i][j] = -kdiff[i][j] * ptilda * E_int;
     aN[i][j] = 0.0;
-    aS[i][j] = -2 * hxhy_sq * kdiff[i][j] * pj;
-    b[i][j] = (b[i][j] * pj + 2.0 * hxhy_sq * dy[j - 1] * rj * kdiff[i][j]);
+    aS[i][j] = -kdiff[i][j] * ptilda * (N_int + S_int);
+    b[i][j] = b[i][j] * ptilda + 2.0 * hy * rj * kdiff[i][j] * N_int;
   }
   // ------ Step 5 :: top boundary done ---
 
-  // // debug
+  // debug
   // for (i = 0; i < nx; i++)
   //   for (j = 0; j < ny; j++)
   //   {
@@ -344,7 +434,7 @@ void output_soln(int nx, int ny, int iter, double *x, double *y, double **T, dou
   FILE *fp;
   char fname[100];
 
-  sprintf(fname, "output/T_xy_%03d_%03d_%04d.dat", nx, ny, iter);
+  sprintf(fname, "output1/T_xy_%03d_%03d_%04d.dat", nx, ny, iter);
 
   fp = fopen(fname, "w");
   for (i = 0; i < nx; i++)
@@ -355,11 +445,12 @@ void output_soln(int nx, int ny, int iter, double *x, double *y, double **T, dou
   printf(" > Done writing solution for stamp = %d to file %s\n\n", iter, fname);
 }
 
-double get_sor(int nx,int ny){
+double get_sor(int nx, int ny)
+{
   double omega;
-   //assuming uniform grid for calculating optimal SOR factor
-  double r = (cos(PI/nx) + cos(PI/ny));
-  omega = 2.0 / (1.0 + sqrt(1.0 - r*r/4.0));
+  // assuming uniform grid for calculating optimal SOR factor
+  double r = (cos(PI / nx) + cos(PI / ny));
+  omega = 2.0 / (1.0 + sqrt(1.0 - r * r / 4.0));
   return omega;
 }
 
@@ -377,7 +468,7 @@ int main()
   FILE *fp;
 
   // read inputs
-  fp = fopen("input.in", "r");
+  fp = fopen("input1.in", "r");
   fscanf(fp, "%d %d\n", &nx, &ny);
   fscanf(fp, "%lf %lf\n", &xst, &xen);
   fscanf(fp, "%lf %lf\n", &yst, &yen);
@@ -477,12 +568,13 @@ int main()
   grid(nx, xst, xen, x, dx); // -- along x --
   grid(ny, yst, yen, y, dy); // -- along y --
   printf("\n > Done setting up grid ---------- \n");
-
+  double hx = (xen - xst) / (nx - 1);
+  double hy = (yen - yst) / (ny - 1);
   set_initial_guess(nx, ny, x, y, T); // initial condition
   printf("\n > Done setting up initial guess -- \n");
 
-  // ---
-  get_coeffs(nx, ny, x, y, dx, dy,            // grid vars
+  // // ---
+  get_coeffs(nx, ny, hx, hy, x, y, dx, dy,    // grid vars
              aP, aE, aW, aN, aS, b, T, kdiff, // coefficients
              bcleft, bcrght, bctop, bcbot);   // BC vars
   printf("\n > Done calculating coeffs ----- \n");
@@ -490,13 +582,13 @@ int main()
   printf("\n > Solving for T ------------- \n\n");
   max_iter = 100000;
   tol = 1.0e-10;
-  relax_T = get_sor(nx,ny); // approximating optimal relaxation factor for SOR
-  
+  relax_T = get_sor(nx, ny); // approximating optimal relaxation factor for SOR
+  // relax_T = 1.5;
   clock_t start_time = clock();
   solve_gssor(nx, ny, aP, aE, aW, aN, aS, b, T, wrk1, wrk2, max_iter, tol, relax_T);
   clock_t end_time = clock();
-  
-  // ---
+
+  // // ---
   printf(" > Done solving for T ------------- \n\n");
 
   double runtime = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
@@ -510,8 +602,8 @@ int main()
 
   l2err = get_l2err_norm(nx, ny, T, Tex);
   printf(" > %d %d %9.5e\n", nx, ny, l2err);
-  
-  FILE *error_fp = fopen("output/error.dat", "a");
+
+  FILE *error_fp = fopen("output1/error.dat", "a");
   fprintf(error_fp, "%d %d %9.5e\n", nx, ny, l2err);
   fclose(error_fp);
 
