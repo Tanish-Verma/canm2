@@ -74,5 +74,5 @@ echo "All runs complete!"
 for line in "${generated_files[@]}"; do
     echo "  $line"
 done
-echo "Run: python q1_convergence.py"
+echo "Run: python plotting_q1_convergence.py"
 echo "=========================================="

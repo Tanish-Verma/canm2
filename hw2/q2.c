@@ -1,10 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
-// exact solution: T(x,t) = erf((x - 0.5) / (2 * sqrt(t)))
 double exact_solution(double x, double t)
 {
   return erf((x - 0.5) / (2.0 * sqrt(t)));
@@ -106,9 +103,6 @@ int main()
   int i, it, num_time_steps, it_print;
   FILE *fp;
 
-  // ensure output directory exists
-  mkdir("output2", 0777);
-
   // read inputs
   fp = fopen("input2.in", "r");
   fscanf(fp, "%d\n", &nx);
@@ -127,7 +121,7 @@ int main()
 
   set_initial_condition(nx, x, T, tst);    // initial condition from exact soln at t=tst
 
-  dt = 2.9121e-4;
+  dt = 1.25e-7;
 //   dt = 0.000001;
   num_time_steps = (int)((ten - tst) / dt) + 1;  // +1 to ensure we reach ten
   it_print = num_time_steps / 10;
