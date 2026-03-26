@@ -3,6 +3,13 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import os
 
+LABEL_FS = 16
+TITLE_FS = 17
+TICK_FS = 13
+LEGEND_FS = 14
+LINE_LW = 3.2
+EXACT_LW = 3.6
+
 def ensure_plots_dir():
     plots_dir = 'plots'
     if not os.path.exists(plots_dir):
@@ -53,12 +60,13 @@ def plot_contour(filename):
     fig1, ax = plt.subplots(figsize=(10, 8))
     
     cs = ax.contourf(X, Y, T_2d, levels=50, cmap='viridis')
-    ax.set_xlabel('x (m)', fontsize=14)
-    ax.set_ylabel('y (m)', fontsize=14)
-    ax.set_title('Numerical Solution (T)', fontsize=16, fontweight='bold')
+    ax.set_xlabel('x (m)', fontsize=LABEL_FS)
+    ax.set_ylabel('y (m)', fontsize=LABEL_FS)
+    ax.set_title('Numerical Solution (T)', fontsize=TITLE_FS, fontweight='bold')
     cbar = fig1.colorbar(cs, ax=ax)
-    cbar.set_label('Temperature (K)', fontsize=14)
-    ax.tick_params(labelsize=12)
+    cbar.set_label('Temperature (K)', fontsize=LABEL_FS)
+    cbar.ax.tick_params(labelsize=TICK_FS)
+    ax.tick_params(labelsize=TICK_FS)
     plt.tight_layout()
     save_figure(fig1, 'contour_numerical.png', plots_dir, dpi=300)
     
@@ -84,12 +92,12 @@ def plot_error(filename,a):
     print(f"Approximate slope (order of convergence): {slope:.3f}")
 
     fig, ax = plt.subplots(figsize=(9, 6))
-    ax.loglog(grid_spacing, l2err, marker='o', linewidth=2.5, markersize=8)
-    ax.set_xlabel('Grid spacing (dx)', fontsize=14)
-    ax.set_ylabel('L2 Error Norm', fontsize=14)
-    ax.set_title('Error Norm vs Grid Spacing (log Scale)', fontsize=16, fontweight='bold')
+    ax.loglog(grid_spacing, l2err, marker='o', linewidth=LINE_LW, markersize=9)
+    ax.set_xlabel('Grid spacing (dx)', fontsize=LABEL_FS)
+    ax.set_ylabel('L2 Error Norm', fontsize=LABEL_FS)
+    ax.set_title('Error Norm vs Grid Spacing (log Scale)', fontsize=TITLE_FS, fontweight='bold')
     ax.grid(True, which='both', linestyle='--', alpha=0.3, linewidth=1)
-    ax.tick_params(labelsize=12)
+    ax.tick_params(labelsize=TICK_FS)
     
     def power_of_2_formatter(x,pos):
         log_val = np.log2(x)
@@ -141,19 +149,19 @@ def plot_line_profiles_with_analytical_solution(grid_sizes, output_dir='output',
     for d in datasets:
         if d!=ref:
             ix = int(np.argmin(np.abs(d['x1d'] - x_target)))
-            ax_y.plot(d['y1d'], d['T2d'][ix, :], linewidth=3.0,
+                ax_y.plot(d['y1d'], d['T2d'][ix, :], linewidth=LINE_LW,
                     label=f"Grid size {d['nx']}x{d['ny']}")
 
     ix_ref = int(np.argmin(np.abs(ref['x1d'] - x_target)))
-    ax_y.plot(ref['y1d'], ref['Tex2d'][ix_ref, :], '--', linewidth=3.5, label='Exact (Tex)',color = "#000000")
-    ax_y.set_xlabel('y (m)', fontsize=14)
-    ax_y.set_ylabel('Temperature (K)', fontsize=14)
+    ax_y.plot(ref['y1d'], ref['Tex2d'][ix_ref, :], '--', linewidth=EXACT_LW, label='Exact (Tex)',color = "#000000")
+    ax_y.set_xlabel('y (m)', fontsize=LABEL_FS)
+    ax_y.set_ylabel('Temperature (K)', fontsize=LABEL_FS)
 
     x_tag = str(x_target).replace('.', 'p')
-    ax_y.set_title(f'Temperature Profile Along y-axis for x = {x_target}', fontsize=16, fontweight='bold')
+    ax_y.set_title(f'Temperature Profile Along y-axis for x = {x_target}', fontsize=TITLE_FS, fontweight='bold')
     ax_y.grid(True, alpha=0.3, linewidth=1)
-    ax_y.legend(fontsize=13)
-    ax_y.tick_params(labelsize=12)
+    ax_y.legend(fontsize=LEGEND_FS)
+    ax_y.tick_params(labelsize=TICK_FS)
     fig_y.tight_layout()
     save_figure(fig_y, f'y_profile_for_x{x_tag}.png', plots_dir,dpi=300)
 
@@ -163,18 +171,18 @@ def plot_line_profiles_with_analytical_solution(grid_sizes, output_dir='output',
     for d in datasets:
         if d != ref:
             jy = int(np.argmin(np.abs(d['y1d'] - y_target)))
-            ax_x.plot(d['x1d'], d['T2d'][:, jy], linewidth=3.0,
+                ax_x.plot(d['x1d'], d['T2d'][:, jy], linewidth=LINE_LW,
                     label=f"Grid size {d['nx']}x{d['ny']}")
 
     jy_ref = int(np.argmin(np.abs(ref['y1d'] - y_target)))
-    ax_x.plot(ref['x1d'], ref['Tex2d'][:, jy_ref], '--', linewidth=3.5, label='Exact (Tex)',color = "#000000")
-    ax_x.set_xlabel('x (m)', fontsize=14)
-    ax_x.set_ylabel('Temperature (K)', fontsize=14)
+    ax_x.plot(ref['x1d'], ref['Tex2d'][:, jy_ref], '--', linewidth=EXACT_LW, label='Exact (Tex)',color = "#000000")
+    ax_x.set_xlabel('x (m)', fontsize=LABEL_FS)
+    ax_x.set_ylabel('Temperature (K)', fontsize=LABEL_FS)
     y_tag = str(y_target).replace('.', 'p')
-    ax_x.set_title(f'Temperature Profile Along x-axis for y = {y_target}', fontsize=16, fontweight='bold')
+    ax_x.set_title(f'Temperature Profile Along x-axis for y = {y_target}', fontsize=TITLE_FS, fontweight='bold')
     ax_x.grid(True, alpha=0.3, linewidth=1)
-    ax_x.legend(fontsize=13)
-    ax_x.tick_params(labelsize=12)
+    ax_x.legend(fontsize=LEGEND_FS)
+    ax_x.tick_params(labelsize=TICK_FS)
     fig_x.tight_layout()
     save_figure(fig_x, f'x_profile_for_y{y_tag}.png', plots_dir,dpi=300)
 

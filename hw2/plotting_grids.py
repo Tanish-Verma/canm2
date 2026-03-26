@@ -6,7 +6,13 @@ NX = 33
 NY = 17
 LX = 1.0
 LY = 0.5
-BETA_VALUES = [1.5, 2.0, 5.0, 10.0, 50.0]
+BETA_VALUES = [1.25, 1.5, 2.0, 5.0, 10.0, 50.0]
+LABEL_FS = 15
+TITLE_FS = 15
+TICK_FS = 12
+LEGEND_FS = 12
+GRID_LW = 1.2
+LINE_LW = 2.4
 
 os.makedirs("plots", exist_ok=True)
 
@@ -29,8 +35,9 @@ def uniform_coords(n, length):
 
 
 def make_2d_grid_plot():
-    fig, axes = plt.subplots(1, 3, figsize=(17, 5))
-    compare_betas = [None, 1.5, 10.0]
+    fig, axes = plt.subplots(3, 2, figsize=(21, 11))
+    axes = axes.ravel()
+    compare_betas = [None] + BETA_VALUES[:5]
 
     for ax, beta in zip(axes, compare_betas):
         if beta is None:
@@ -43,17 +50,18 @@ def make_2d_grid_plot():
             title = f"2D stretched grid beta={beta:g} ({NX}x{NY})"
 
         for xi in xs_x:
-            ax.axvline(xi, color="steelblue", linewidth=0.7, alpha=0.8)
+            ax.axvline(xi, color="steelblue", linewidth=GRID_LW, alpha=0.8)
         for yi in xs_y:
-            ax.axhline(yi, color="steelblue", linewidth=0.7, alpha=0.8)
+            ax.axhline(yi, color="steelblue", linewidth=GRID_LW, alpha=0.8)
 
         xx, yy = np.meshgrid(xs_x, xs_y)
-        ax.plot(xx, yy, "k.", markersize=2)
+        ax.plot(xx, yy, "k.", markersize=3)
         ax.set_xlim(-0.02, LX + 0.02)
         ax.set_ylim(-0.01, LY + 0.01)
-        ax.set_xlabel("x", fontsize=12)
-        ax.set_ylabel("y", fontsize=12)
-        ax.set_title(title, fontsize=12)
+        ax.set_xlabel("x", fontsize=LABEL_FS)
+        ax.set_ylabel("y", fontsize=LABEL_FS)
+        ax.set_title(title, fontsize=TITLE_FS)
+        ax.tick_params(labelsize=TICK_FS)
         ax.set_aspect("equal")
         ax.grid(False)
 
@@ -62,26 +70,28 @@ def make_2d_grid_plot():
 
 
 def make_spacing_plot():
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
 
     for beta in BETA_VALUES:
         dx_x = np.diff(stretched_coords(NX, LX, beta))
         dx_y = np.diff(stretched_coords(NY, LY, beta))
-        axes[0].plot(np.arange(dx_x.size), dx_x, linewidth=1.8, label=f"beta={beta:g}")
-        axes[1].plot(np.arange(dx_y.size), dx_y, linewidth=1.8, label=f"beta={beta:g}")
+        axes[0].plot(np.arange(dx_x.size), dx_x, linewidth=LINE_LW, label=f"beta={beta:g}")
+        axes[1].plot(np.arange(dx_y.size), dx_y, linewidth=LINE_LW, label=f"beta={beta:g}")
 
-    axes[0].set_title("X grid spacing for all beta")
-    axes[1].set_title("Y grid spacing for all beta")
-    axes[0].set_xlabel("Cell index i")
-    axes[1].set_xlabel("Cell index j")
-    axes[0].set_ylabel("dx")
-    axes[1].set_ylabel("dy")
+    axes[0].set_title("X grid spacing for all beta", fontsize=TITLE_FS)
+    axes[1].set_title("Y grid spacing for all beta", fontsize=TITLE_FS)
+    axes[0].set_xlabel("Cell index i", fontsize=LABEL_FS)
+    axes[1].set_xlabel("Cell index j", fontsize=LABEL_FS)
+    axes[0].set_ylabel("dx", fontsize=LABEL_FS)
+    axes[1].set_ylabel("dy", fontsize=LABEL_FS)
     axes[0].set_yscale("log")
     axes[1].set_yscale("log")
     axes[0].grid(True, linestyle="--", alpha=0.4)
     axes[1].grid(True, linestyle="--", alpha=0.4)
-    axes[0].legend(fontsize=9)
-    axes[1].legend(fontsize=9)
+    axes[0].tick_params(labelsize=TICK_FS)
+    axes[1].tick_params(labelsize=TICK_FS)
+    axes[0].legend(fontsize=LEGEND_FS)
+    axes[1].legend(fontsize=LEGEND_FS)
 
     fig.tight_layout()
     save_plot(fig, "grid_spacings_all.png")

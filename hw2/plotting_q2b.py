@@ -5,7 +5,13 @@ import os
 
 os.makedirs("plots", exist_ok=True)
 
-fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+LABEL_FS = 15
+TITLE_FS = 15
+TICK_FS = 12
+C_BAR_FS = 12
+LINE_LW = 2.3
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
 for ax, (folder, r, status) in zip(axes.flatten(), [
     ("output2/r040", 0.40, "Stable"),
@@ -19,19 +25,22 @@ for ax, (folder, r, status) in zip(axes.flatten(), [
     colors = plt.cm.viridis(np.linspace(0.1, 0.9, n))
     
     for i, (x, t) in enumerate(snaps):
-        ax.plot(x, t, color=colors[i], lw=1.6, label=f"t-step {i+1}" if i in (0, n-1) else None)
+        ax.plot(x, t, color=colors[i], lw=LINE_LW, label=f"t-step {i+1}" if i in (0, n-1) else None)
     
     sm = plt.cm.ScalarMappable(cmap="viridis", norm=plt.Normalize(vmin=1, vmax=n))
     sm.set_array([])
-    plt.colorbar(sm, ax=ax).set_label("time step index", fontsize=10)
+    cbar = plt.colorbar(sm, ax=ax)
+    cbar.set_label("time step index", fontsize=C_BAR_FS)
+    cbar.ax.tick_params(labelsize=TICK_FS)
     
-    ax.set_title(f"{status}: r = {r}", fontsize=13)
-    ax.set_xlabel("$x$", fontsize=12)
-    ax.set_ylabel("$T$", fontsize=12)
+    ax.set_title(f"{status}: r = {r}", fontsize=TITLE_FS)
+    ax.set_xlabel("$x$", fontsize=LABEL_FS)
+    ax.set_ylabel("$T$", fontsize=LABEL_FS)
     ax.grid(True, alpha=0.3)
-    ax.tick_params(labelsize=11)
+    ax.tick_params(labelsize=TICK_FS)
+    ax.legend(fontsize=12)
 
-fig.suptitle("Q2(b): Forward Euler - stable vs unstable behaviour", fontsize=14)
+fig.suptitle("Q2(b): Forward Euler - stable vs unstable behaviour", fontsize=17)
 fig.tight_layout()
 outpath = "plots/q2b_stability.png"
 fig.savefig(outpath, dpi=150, bbox_inches="tight")
