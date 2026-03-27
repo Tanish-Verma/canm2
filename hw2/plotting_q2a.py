@@ -25,7 +25,8 @@ def main():
     fig, ax = plt.subplots(figsize=(9, 6))
 
     for r in r_values:
-        growth_factor = 1 - 4 * r * np.sin(kdx / 2) ** 2
+        growth_factor = (1 - 4 * r * np.sin(kdx / 2) ** 2)
+        # growth_factor = np.abs(1 - 4 * r * np.sin(kdx / 2) ** 2)
         sigma_dt = np.full_like(growth_factor, np.nan, dtype=float)
         valid = growth_factor > 0
         sigma_dt[valid] = np.log(growth_factor[valid])
@@ -44,6 +45,7 @@ def main():
 
     fig.tight_layout()
     save_figure(fig, "stability_plot.png")
+    # save_figure(fig, "stability_plot_abs.png")
 
 
 if __name__ == "__main__":
