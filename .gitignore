@@ -3,3 +3,4 @@ T_xy_*.dat
 __pycache__/
 output_*.dat
 a.out
+main
