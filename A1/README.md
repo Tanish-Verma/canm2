@@ -4,7 +4,7 @@ This README gives a basic overview of what each folder/file is used for.
 
 ## Folder structure (from project root)
 
-```
+``` text
 canm2/
 └── A1/
     ├── README.md
