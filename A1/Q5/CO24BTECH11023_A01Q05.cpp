@@ -1,8 +1,6 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-#define nu 2.14
-
 vector<double> makeGrid(double xstart, double xend, int Nx)
 {
     vector<double> grid;
@@ -127,7 +125,7 @@ vector<double> solvePeriodicTDMA(double a, double b, double c, const vector<doub
 
     return x;
 }
-void solveMacCormack(vector<double> &u, const vector<double> &x, double dt, int Nt, int Nx, const vector<double> &output_times)
+void solveMacCormack(vector<double> &u, const vector<double> &x, double dt, int Nt, int Nx, double nu, const vector<double> &output_times)
 {
     vector<double> u_new(Nx, 0.0);
     vector<double> u_pred(Nx, 0.0); // Predictor array
@@ -163,40 +161,63 @@ void solveMacCormack(vector<double> &u, const vector<double> &x, double dt, int 
     }
 }
 
-void solveCrankNicolson(vector<double> &u, const vector<double> &x, double dt, int Nt, int Nx, const vector<double> &output_times)
+void solveCrankNicolson(vector<double> &u, const vector<double> &x, double dt, int Nt, int Nx, double nu, const vector<double> &output_times, const string &method_name = "CrankNicolson")
 {
-    writesolutiontoFile(u, x, 0.0, "CrankNicolson");
+    writesolutiontoFile(u, x, 0.0, method_name);
 
     int next_output_idx = 1;
 
-    // Matrix coefficients for the LHS: u_i^{n+1} + (nu/4)u_{i+1} - (nu/4)u_{i-1}
-    double a_coeff = -nu / 4.0; // Lower diagonal
-    double b_coeff = 1.0;       // Main diagonal
-    double c_coeff = nu / 4.0;  // Upper diagonal
+    double a_coeff = -nu / 4.0;
+    double b_coeff = 1.0;      
+    double c_coeff = nu / 4.0;  
 
     for (int n = 1; n <= Nt; n++)
     {
         vector<double> rhs(Nx, 0.0);
 
-        // Calculate the RHS vector (b^n) from the known time step 'u'
-        // RHS eq: u_i^n - (nu/4)*(u_{i+1}^n - u_{i-1}^n)
         for (int i = 1; i < Nx - 1; ++i)
         {
             rhs[i] = u[i] - (nu / 4.0) * (u[i + 1] - u[i - 1]);
         }
-        // RHS Periodic bounds
         rhs[0] = u[0] - (nu / 4.0) * (u[1] - u[Nx - 1]);
         rhs[Nx - 1] = u[Nx - 1] - (nu / 4.0) * (u[0] - u[Nx - 2]);
 
-        // Call your TDMA solver to get u^{n+1}
         u = solvePeriodicTDMA(a_coeff, b_coeff, c_coeff, rhs);
 
         double current_time = n * dt;
         if (next_output_idx < output_times.size() && current_time >= output_times[next_output_idx])
         {
-            writesolutiontoFile(u, x, output_times[next_output_idx], "CrankNicolson");
+            writesolutiontoFile(u, x, output_times[next_output_idx], method_name);
             next_output_idx++;
         }
+    }
+}
+
+
+void runCrankNicolsonfordiffnu(double xstart, double xend, double tstart, double tend, int Nx, double c)
+{
+    vector<double> nu_values = {2.0, 5.0, 10.0};
+    double L = xend - xstart;
+    double dx = (xend - xstart) / Nx;
+    vector<double> x = makeGrid(xstart, xend, Nx);
+    vector<double> output_times = {0.0, 0.25, 0.5, 0.75, 1.0};
+
+    for (double nu_val : nu_values)
+    {
+        // Recalculate dt and Nt for the new nu
+        double dt = nu_val * dx / c;
+        int Nt = ceil((tend - tstart) / dt);
+        
+        // Reset initial condition
+        vector<double> u(Nx, 0.0);
+        setinitialCondition(u, x, L);
+        
+        ostringstream folder_path;
+        folder_path << "nu" << (int)nu_val << "/CN"; 
+        double final_time = Nt*dt;
+        solveCrankNicolson(u, x, dt, Nt, Nx, nu_val, output_times, folder_path.str());
+        double e = calculatel2Norm(u, exactSol(x, final_time, c, L), dx);
+        printf("L2 Error for Crank-Nicolson at t=1.0 for nu = %f: %lf\n\n",nu_val ,e);
     }
 }
 
@@ -209,13 +230,20 @@ int main()
         printf("Error: Could not open input.txt\n");
         return 1;
     }
-    int Nx, c;
+    int Nx;
+    double c, nu;
     double xstart, xend, tstart, tend;
-    fscanf(fp, "%d %d", &Nx, &c);
+    int first_line_items = fscanf(fp, "%d %lf %lf", &Nx, &c, &nu);
+    if (first_line_items < 2)
+    {
+        printf("Error: First input line must contain at least Nx and c.\n");
+        fclose(fp);
+        return 1;
+    }
     fscanf(fp, "%lf %lf %lf %lf", &xstart, &xend, &tstart, &tend);
     fclose(fp);
 
-    printf("The inputs are Nx = %d, c = %d, xstart = %lf, xend = %lf, tstart = %lf, tend = %lf\n\n", Nx, c, xstart, xend, tstart, tend);
+    printf("The inputs are Nx = %d, c = %lf, nu = %lf, xstart = %lf, xend = %lf, tstart = %lf, tend = %lf\n\n", Nx, c, nu, xstart, xend, tstart, tend);
 
     // Build grid and calculate time step
     double dx = (xend - xstart) / Nx;
@@ -235,7 +263,7 @@ int main()
     double e;
     // Solve using MacCormack method
     printf("Solving using MacCormack method...\n");
-    solveMacCormack(u, x, dt, Nt, Nx, output_times);
+    solveMacCormack(u, x, dt, Nt, Nx, nu, output_times);
     e = calculatel2Norm(u, exactSol(x, final_time, c, L), dx);
     printf("L2 Error for MacCormack at t=1.0: %lf\n\n", e);
     printf("MacCormack method completed.\n");
@@ -245,10 +273,12 @@ int main()
 
     // Solve using Crank-Nicolson method
     printf("Solving using Crank-Nicolson method...\n");
-    solveCrankNicolson(u, x, dt, Nt, Nx, output_times);
+    solveCrankNicolson(u, x, dt, Nt, Nx, nu, output_times);
     e = calculatel2Norm(u, exactSol(x, final_time, c, L), dx);
     printf("L2 Error for Crank-Nicolson at t=1.0: %lf\n\n", e);
     printf("Crank-Nicolson method completed.\n");
+
+    runCrankNicolsonfordiffnu(xstart, xend, tstart, tend, Nx, c);
 
     printf("Program completed.\n");
     return 0;

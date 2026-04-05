@@ -4,3 +4,4 @@ __pycache__/
 output_*.dat
 a.out
 main
+*_T_*

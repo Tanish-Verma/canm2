@@ -1,8 +1,6 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-#define nu 1.82 // Courant number for Roll 23 (Problem 4)
-
 vector<double> makeGrid(double xstart, double xend, int Nx)
 {
     vector<double> grid;
@@ -43,10 +41,10 @@ double calculatel2Norm(const vector<double> &u_num, const vector<double> &u_exac
     return sqrt(dx * sum);
 }
 
-void writesolutiontoFile(const vector<double> &u, const vector<double> &x, double t)
+void writesolutiontoFile(const vector<double> &u, const vector<double> &x, double t, const string &dir)
 {
     ostringstream name;
-    name << "data/LaxW_T_" << t << ".txt";
+    name << dir << "/LaxW_T_" << t << ".txt";
     ofstream out(name.str());
     for (size_t i = 0; i < u.size() && i < x.size(); ++i)
     {
@@ -54,12 +52,13 @@ void writesolutiontoFile(const vector<double> &u, const vector<double> &x, doubl
     }
 }
 
-void solveLaxWendroff(vector<double> &u, const vector<double> &x, double dt, int Nt, int Nx, const vector<double> &output_times)
+void solveLaxWendroff(vector<double> &u, const vector<double> &x, double dt, int Nt, int Nx, double nu, const vector<double> &output_times)
 {
     vector<double> u_new(u.size(), 0.0);
 
     // Write initial condition
-    writesolutiontoFile(u, x, 0.0);
+    writesolutiontoFile(u, x, 0.0, "data/SetTimeSteps");
+    writesolutiontoFile(u, x, 0.0, "data/StableTimeSteps");
 
     int next_output_idx = 1;
 
@@ -84,9 +83,13 @@ void solveLaxWendroff(vector<double> &u, const vector<double> &x, double dt, int
 
         // Output logic
         double current_time = n * dt;
+        double dx = (x[1] - x[0]);
+        // if(calculatel2Norm(u, exactSol(x, current_time, 1.0, dx*Nx), dx) < 10) {
+        //     writesolutiontoFile(u, x, current_time, "data/StableTimeSteps");
+        // }
         if (next_output_idx < output_times.size() && current_time >= output_times[next_output_idx])
         {
-            writesolutiontoFile(u, x, output_times[next_output_idx]);
+            writesolutiontoFile(u, x, output_times[next_output_idx], "data/SetTimeSteps");
             next_output_idx++;
         }
     }
@@ -100,13 +103,19 @@ int main()
         printf("Error: Could not open input.txt\n");
         return 1;
     }
-    int Nx, c;
+    int Nx;
+    double c, nu;
     double xstart, xend, tstart, tend;
-    fscanf(fp, "%d %d", &Nx, &c);
+    int first_line_items = fscanf(fp, "%d %lf %lf", &Nx, &c, &nu);
+    if (first_line_items < 2) {
+        printf("Error: First input line must contain at least Nx and c.\n");
+        fclose(fp);
+        return 1;
+    }
     fscanf(fp, "%lf %lf %lf %lf", &xstart, &xend, &tstart, &tend);
     fclose(fp);
     
-    printf("The inputs are Nx = %d, c = %d, xstart = %lf, xend = %lf, tstart = %lf, tend = %lf\n\n", Nx, c, xstart, xend, tstart, tend);
+    printf("The inputs are Nx = %d, c = %lf, nu = %lf, xstart = %lf, xend = %lf, tstart = %lf, tend = %lf\n\n", Nx, c, nu, xstart, xend, tstart, tend);
 
     // Build grid and calculate time step
     double dx = (xend - xstart) / Nx;
@@ -125,7 +134,7 @@ int main()
     
     // Solve using Lax-Wendroff
     printf("Solving using Lax-Wendroff...\n\n");
-    solveLaxWendroff(u, x, dt, Nt, Nx, output_times);
+    solveLaxWendroff(u, x, dt, Nt, Nx, nu, output_times);
     printf("Lax-Wendroff solution completed.\n\n");
     
     // Calculate final error

@@ -1,8 +1,6 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-#define nu 0.50
-
 vector<double> makeGrid(double xstart, double xend, int Nx)
 {
     vector<double> grid;
@@ -54,15 +52,18 @@ void writesolutiontoFile(const vector<double> &u, const vector<double> &x, doubl
     }
 }
 
-void solveLaxFriedrich(vector<double> &u, const vector<double> &x, double dt, int Nt, int Nx, const vector<double> &output_times)
+void solveLaxFriedrich(vector<double> &u, const vector<double> &x, double dt, int Nt, int Nx, double nu, const vector<double> &output_times, bool write)
 {
     vector<double> u_new(u.size(), 0.0);
-
+    
     // Write initial condition
-    writesolutiontoFile(u, x, 0.0);
-
+    if (write)
+    {
+        writesolutiontoFile(u, x, 0.0);
+    }
+    
     int next_output_idx = 1;
-
+    
     for (int n = 1; n <= Nt; n++)
     {
         // Interior points
@@ -77,14 +78,41 @@ void solveLaxFriedrich(vector<double> &u, const vector<double> &x, double dt, in
         
         // Update state
         u = u_new;
-
+        
         // Output logic
-        double current_time = n * dt;
-        if (next_output_idx < output_times.size() && current_time >= output_times[next_output_idx])
-        {
-            writesolutiontoFile(u, x, output_times[next_output_idx]);
-            next_output_idx++;
+        if (write) {
+            double current_time = n * dt;
+            if (next_output_idx < output_times.size() && current_time >= output_times[next_output_idx])
+            {
+                writesolutiontoFile(u, x, output_times[next_output_idx]);
+                next_output_idx++;
+            }
         }
+    }
+}
+
+void computeL2ErrorVsDx(double xstart, double xend, double tstart, double tend, double c, double nu)
+{
+    vector<int> Nx_values = {25, 50, 100, 200};
+    ofstream out("error.txt");
+
+    for (int Nx : Nx_values)
+    {
+        double dx = (xend - xstart) / Nx;
+        double dt = nu * dx / c;
+        int Nt = ceil((tend - tstart) / dt);
+        double L = xend - xstart;
+
+        vector<double> x = makeGrid(xstart, xend, Nx);
+        vector<double> u(Nx, 0.0);
+        setinitialCondition(u, x, L);
+
+        vector<double> output_times = {0.0, 0.25, 0.5, 0.75, 1.0};
+        solveLaxFriedrich(u, x, dt, Nt, Nx, nu, output_times, 0);
+
+        double final_time = Nt * dt;
+        double error = calculatel2Norm(u, exactSol(x, final_time, c, L), dx);
+        out << dx << " " << error << "\n";
     }
 }
 
@@ -96,13 +124,19 @@ int main()
         printf("Error: Could not open input.txt\n");
         return 1;
     }
-    int Nx, c;
+    int Nx;
+    double c, nu;
     double xstart, xend, tstart, tend;
-    fscanf(fp, "%d %d", &Nx, &c);
+    int first_line_items = fscanf(fp, "%d %lf %lf", &Nx, &c, &nu);
+    if (first_line_items < 2) {
+        printf("Error: First input line must contain at least Nx and c.\n");
+        fclose(fp);
+        return 1;
+    }
     fscanf(fp, "%lf %lf %lf %lf", &xstart, &xend, &tstart, &tend);
     fclose(fp);
     
-    printf("The inputs are Nx = %d, c = %d, xstart = %lf, xend = %lf, tstart = %lf, tend = %lf\n\n", Nx, c, xstart, xend, tstart, tend);
+    printf("The inputs are Nx = %d, c = %lf, nu = %lf, xstart = %lf, xend = %lf, tstart = %lf, tend = %lf\n\n", Nx, c, nu, xstart, xend, tstart, tend);
 
     // Build grid and calculate time step
     double dx = (xend - xstart) / Nx;
@@ -114,6 +148,9 @@ int main()
     printf("The values of dx and dt are %lf and %lf respectively\n\n", dx, dt);
     printf("The number of time steps Nt is %d\n\n", Nt);
 
+    computeL2ErrorVsDx(xstart, xend, tstart, tend, c, nu);
+    printf("Saved dx-error data to error.txt\n\n");
+
     // Initialize state and output schedule
     vector<double> u(Nx, 0.0);
     setinitialCondition(u, x, L);
@@ -121,7 +158,7 @@ int main()
     
     // Solve using Lax-Friedrich
     printf("Solving using Lax-Friedrich...\n\n");
-    solveLaxFriedrich(u, x, dt, Nt, Nx, output_times);
+    solveLaxFriedrich(u, x, dt, Nt, Nx, nu, output_times,1);
     printf("Lax-Friedrich solution completed.\n\n");
     
     // Calculate final error

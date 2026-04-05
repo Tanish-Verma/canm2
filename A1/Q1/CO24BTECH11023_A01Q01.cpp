@@ -1,7 +1,6 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-#define nu 0.48 // courant number
 #define FTFS 1
 #define FTBS 2
 
@@ -68,7 +67,7 @@ void writesolutiontoFile(const vector<double> &u, const vector<double> &x, doubl
 }
 
 
-void solveFTFS(vector<double> &u, const vector<double> &x, double dt, double dx, double c, int Nt, int Nx, const vector<double> &output_times)
+void solveFTFS(vector<double> &u, const vector<double> &x, double dt, double dx, double c, double nu, int Nt, int Nx, const vector<double> &output_times)
 {
     vector<double> u_new(u.size(), 0.0);
 
@@ -96,7 +95,7 @@ void solveFTFS(vector<double> &u, const vector<double> &x, double dt, double dx,
     }
 }
 
-void solveFTBS(vector<double> &u, const vector<double> &x, double dt, double dx, double c, int Nt, int Nx, const vector<double> &output_times)
+void solveFTBS(vector<double> &u, const vector<double> &x, double dt, double dx, double c, double nu, int Nt, int Nx, const vector<double> &output_times)
 {
     std::vector<double> u_new(u.size(), 0.0);
 
@@ -134,11 +133,11 @@ int main()
         return 1;
     }
     int Nx, c;
-    double xstart, xend, tstart, tend;
-    fscanf(fp, "%d %d", &Nx, &c);
+    double nu, xstart, xend, tstart, tend;
+    fscanf(fp, "%d %d %lf", &Nx, &c, &nu);
     fscanf(fp, "%lf %lf %lf %lf", &xstart, &xend, &tstart, &tend);
     fclose(fp);
-    printf("The inputs are Nx = %d, c = %d, xstart = %lf, xend = %lf, tstart = %lf, tend = %lf\n\n", Nx, c, xstart, xend, tstart, tend);
+    printf("The inputs are Nx = %d, c = %d, nu = %lf, xstart = %lf, xend = %lf, tstart = %lf, tend = %lf\n\n", Nx, c, nu, xstart, xend, tstart, tend);
 
     // Build grid and calculate time step
     double dx = (xend - xstart) / (Nx);
@@ -161,7 +160,7 @@ int main()
     // ... after solveFTFS ...
     // Solve using FTFS and report error
     printf("Solving using FTFS...\n\n");
-    solveFTFS(u, x, dt, dx, c, Nt, Nx, output_times);
+    solveFTFS(u, x, dt, dx, c, nu, Nt, Nx, output_times);
     printf("FTFS solution completed.\n\n");
     e = calculatel2Norm(u, exactSol(x, final_time, c, L), dx);
     printf("L2 Error for FTFS: %lf\n\n", e);
@@ -169,7 +168,7 @@ int main()
     // Reset and solve using FTBS
     setinitialCondition(u, x, L);
     printf("Solving using FTBS...\n\n");
-    solveFTBS(u, x, dt, dx, c, Nt, Nx, output_times);
+    solveFTBS(u, x, dt, dx, c, nu, Nt, Nx, output_times);
     printf("FTBS solution completed.\n\n");
     e = calculatel2Norm(u, exactSol(x, final_time, c, L), dx);
     printf("L2 Error for FTBS: %lf\n\n", e);
