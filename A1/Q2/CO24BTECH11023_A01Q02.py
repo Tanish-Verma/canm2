@@ -113,16 +113,16 @@ def plotFTFSGrowthRate(data_file="data/FTCS_max_u.txt", plots_dir="plots", nstep
     data = data[:nsteps]
     step = np.arange(1, data.shape[0] + 1)
     max_u = np.abs(data[:, 1])
-    slope, intercept = np.polyfit(np.log(max_u),step, 1)
-    observed_rate = slope
-    print(f"Observed growth rate: {observed_rate:.4f}")
+    # slope, intercept = np.polyfit(np.log(max_u),step, 1)
+    # observed_rate = slope
+    # print(f"Observed growth rate: {observed_rate:.4f}")
 
     plt.figure(figsize=(8, 6))
     # Plot on a log scale 
     plt.semilogy(step, max_u, 'r-', linewidth=2.5, label="||u||_inf")
     #plotting the observed fit
-    max_u_fit = np.exp(intercept) * np.exp(observed_rate * step)
-    plt.semilogy(step, max_u_fit, 'b--', linewidth=2.5, label=f"Observed fit (p={observed_rate:.2f})")
+    # max_u_fit = np.exp(intercept) * np.exp(observed_rate * step)
+    # plt.semilogy(step, max_u_fit, 'b--', linewidth=2.5, label=f"Observed fit (p={observed_rate:.2f})")
 
     plt.xlabel("Time Step", fontsize=14, fontweight='bold')
     plt.ylabel("||u||_inf (log scale)", fontsize=14, fontweight='bold')

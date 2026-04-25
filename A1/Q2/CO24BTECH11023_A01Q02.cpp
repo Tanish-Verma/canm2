@@ -78,27 +78,30 @@ void solveFTCS(vector<double> &u, const vector<double> &x, double dt, double dx,
     {
         for (int i = 1; i < Nx - 1; ++i)
         {
-            u_new[i] = u[i] - nu * (u[i + 1] - u[i - 1]);
+            u_new[i] = u[i] - nu * (u[i + 1] - u[i - 1]) * 0.5;
         }
-        u_new[0] = u[0] - nu * (u[1] - u[Nx - 1]);
+        u_new[0] = u[0] - nu * (u[1] - u[Nx - 1]) * 0.5;
         u_new[Nx - 1] = u[Nx - 1] - nu * (u[0] - u[Nx - 2]) * 0.5;
         u = u_new;
 
         double current_time = n * dt;
-        if(calculatel2Norm(u, exactSol(x, current_time, c, x.back() - x.front()), dx) > 1.0)
+        if (calculatel2Norm(u, exactSol(x, current_time, c, x.back() - x.front()), dx) > 1.0)
         {
             printf("Warning: L2 norm exceeded 1.0 at time step %d\n", n);
         }
-        if (n <= 50) {
+        if (n <= 50)
+        {
             writesolutiontoFile(u, x, current_time, "data/First50Steps");
         }
-        if (n <= 200) {
+        if (n <= 200)
+        {
             double max_u = 0.0;
-            for (double val : u) {
+            for (double val : u)
+            {
                 max_u = std::max(max_u, std::abs(val));
             }
             // Open in append mode so it keeps adding lines
-            ofstream max_out("data/FTCS_max_u.txt",ios_base::app);
+            ofstream max_out("data/FTCS_max_u.txt", ios_base::app);
             max_out << current_time << " " << max_u << "\n";
         }
         if (next_output_idx < output_times.size() && current_time >= output_times[next_output_idx])
@@ -113,7 +116,8 @@ int main()
 {
     // Extract inputs from file
     FILE *fp = fopen("input.txt", "r");
-    if (!fp) {
+    if (!fp)
+    {
         printf("Error: Could not open input.txt\n");
         return 1;
     }
@@ -121,7 +125,8 @@ int main()
     double c, nu;
     double xstart, xend, tstart, tend;
     int first_line_items = fscanf(fp, "%d %lf %lf", &Nx, &c, &nu);
-    if (first_line_items < 2) {
+    if (first_line_items < 2)
+    {
         printf("Error: First input line must contain at least Nx and c.\n");
         fclose(fp);
         return 1;
